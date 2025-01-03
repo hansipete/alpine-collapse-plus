@@ -8,14 +8,13 @@ An Alpine JS plugin to enhance the collapse directive. It seperates transform an
 
 ```html
 <script defer src="https://unpkg.com/alpine-collapse-plus@latest/dist/collapse-plus.min.js"></script>
-
 <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 ```
 
 ### With a Package Manager
 
 ```shell
-npm install -D alpine-collapse-plus
+npm install alpine-collapse-plus
 ```
 
 ```js

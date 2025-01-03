@@ -1,6 +1,6 @@
 {
   "name": "alpine-collapse-plus",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "author": "Hans <hans@supernodegree.com> (https://supernodegree.com)",
   "description": "An Alpine JS plugin that replaces the collapse directive. It seperates transform and opacity animations for a more seamless transition.",
   "keywords": [

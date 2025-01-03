@@ -1,8 +1,149 @@
-export default function (Alpine) {
-  Alpine.directive(
-    '[name]',
-    (el, { value, modifiers, expression }, { Alpine, effect, cleanup }) => {}
-  )
+function modifierValue(modifiers, key, fallback) {
+  // If the modifier isn't present, use the default.
+  if (modifiers.indexOf(key) === -1) return fallback
 
-  Alpine.magic('[name]', (el, { Alpine }) => {})
+  // If it IS present, grab the value after it: x-show.transition.duration.500ms
+  const rawValue = modifiers[modifiers.indexOf(key) + 1]
+
+  if (!rawValue) return fallback
+
+  if (['duration', 'time', 'stagger'].some(k => key.includes(k))) {
+    // Support x-collapse.duration.500ms && duration.500
+    const match = rawValue.match(/([0-9]+)ms/)
+    if (match) return match[1]
+  }
+
+  if (key === 'min') {
+    // Support x-collapse.min.100px && min.100
+    const match = rawValue.match(/([0-9]+)px/)
+    if (match) return match[1]
+  }
+
+  return rawValue
+}
+
+function collapse(el, { modifiers }) {
+  const duration = modifierValue(modifiers, 'duration', 250) / 1000
+  const floor = modifierValue(modifiers, 'min', 0)
+  const fullyHide = !modifiers.includes('min')
+
+  const contentDuration = modifierValue(modifiers, 'content-duration', duration * 1000) / 1000
+  const contentDurationOut = modifierValue(modifiers, 'content-duration-out', contentDuration * 300) / 1000
+  const contentStagger = modifierValue(modifiers, 'content-stagger', 50) / 1000
+  const contentDelay = modifierValue(modifiers, 'content-delay', duration * 300) / 1000
+
+  // actual content if specified - otherwise regular collapse/expand transition
+  const contentElements = el.querySelectorAll("[x-collapse-content] > *")
+
+  if (!el._x_isShown) el.style.height = `${floor}px`
+  // We use the hidden attribute for the benefit of Tailwind
+  // users as the .space utility will ignore [hidden] elements.
+  // We also use display:none as the hidden attribute has very
+  // low CSS specificity and could be accidentally overridden
+  // by a user.
+  if (!el._x_isShown && fullyHide) el.hidden = true
+  if (!el._x_isShown) el.style.overflow = "hidden"
+
+  // Override the setStyles function with one that won't
+  // revert updates to the height style.
+  const setFunction = (el, styles) => {
+    const revertFunction = Alpine.setStyles(el, styles)
+
+    return styles.height ? () => { } : revertFunction
+  }
+
+  const transitionStyles = {
+    transitionProperty: "height",
+    transitionDuration: `${duration}s`,
+    transitionTimingFunction: "cubic-bezier(0.4, 0.0, 0.2, 1)"
+  }
+
+  el._x_transition = {
+    in(before = () => { }, after = () => { }) {
+      if (fullyHide) el.hidden = false
+      if (fullyHide) el.style.display = null
+
+      for (const [index, el] of contentElements.entries()) {
+        el.style.opacity = 0
+        el.style.transition = `opacity ${contentDuration}s cubic-bezier(0.4, 0.0, 0.2, 1)`
+        el.style.transitionDelay = `${contentDelay + index * contentStagger}s`
+      }
+
+      let current = el.getBoundingClientRect().height
+
+      el.style.height = "auto"
+
+      const full = el.getBoundingClientRect().height
+
+      if (current === full) {
+        current = floor
+      }
+
+      Alpine.transition(
+        el,
+        Alpine.setStyles,
+        {
+          during: transitionStyles,
+          start: { height: `${current}px` },
+          end: { height: `${full}px` }
+        },
+        () => {
+          el._x_isShown = true
+          for (const el of contentElements) {
+            el.style.opacity = 1
+          }
+        },
+        () => {
+          if (Math.abs(el.getBoundingClientRect().height - full) < 1) {
+            el.style.overflow = null
+          }
+        }
+      )
+    },
+
+    out(before = () => { }, after = () => { }) {
+      const full = el.getBoundingClientRect().height
+
+      for (const el of contentElements) {
+        el.style.transitionDelay = 0
+        el.style.transitionDuration = `${contentDurationOut}s`
+        el.style.opacity = 0
+      }
+
+      Alpine.transition(
+        el,
+        setFunction,
+        {
+          during: transitionStyles,
+          start: { height: `${full}px` },
+          end: { height: `${floor}px` }
+        },
+        () => {
+          el.style.overflow = "hidden"
+        },
+        () => {
+          el._x_isShown = false
+
+          // check if element is fully collapsed
+          if (el.style.height === `${floor}px` && fullyHide) {
+            el.style.display = "none"
+            el.hidden = true
+          }
+        }
+      )
+    }
+  }
+}
+
+// If we're using a "minimum height", we'll need to disable
+// x-show's default behavior of setting display: 'none'.
+collapse.inline = (el, { modifiers }) => {
+  if (!modifiers.includes("min")) return
+
+  el._x_doShow = () => { }
+  el._x_doHide = () => { }
+}
+
+export default function (Alpine) {
+  Alpine.directive("collapse", collapse)
 }

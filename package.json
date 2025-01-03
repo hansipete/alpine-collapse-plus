@@ -1,17 +1,20 @@
 {
-  "name": "PLUGIN",
-  "version": "1.0.0",
-  "description": "DESCRIPTION",
+  "name": "alpine-collapse-plus",
+  "version": "0.0.1",
+  "description": "An Alpine JS plugin that replaces the collapse directive. It seperates transform and opacity animations for a more seamless transition.",
   "keywords": [
     "Alpine",
     "Alpine JS",
     "Alpine JS Plugin",
-    "Alpine JS Plugins"
+    "Alpine JS Plugins",
+    "Alpine Collapse",
+    "Alpine Collapse Plus"
   ],
-  "module": "dist/FILE.esm.js",
-  "unpkg": "dist/FILE.min.js",
+  "module": "dist/collapse-plus.esm.js",
+  "unpkg": "dist/collapse-plus.min.js",
   "scripts": {
-    "build": "node scripts/build.js"
+    "build": "node scripts/build.js",
+    "preview": "npx serve"
   },
   "devDependencies": {
     "esbuild": "^0.21.4"
